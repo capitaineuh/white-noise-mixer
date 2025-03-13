@@ -85,13 +85,13 @@ const SavedMixes: React.FC = () => {
                   <h4 className="text-mindful-200 mb-2 text-sm">Sons inclus:</h4>
                   <div className="flex flex-wrap gap-2">
                     {mix.sounds.map(sound => {
-                      const soundInfo = sounds.find(s => s.id === sound.id);
+                      const soundInfo = mix.sounds.find(s => s.id === sound.id);
                       return (
                         <span 
                           key={sound.id}
                           className="px-2 py-1 text-xs rounded-full bg-mindful-700 text-mindful-200"
                         >
-                          {soundInfo?.name}
+                          {soundInfo?.id}
                         </span>
                       );
                     })}
