@@ -38,7 +38,7 @@ const SoundContext = createContext<SoundContextType | undefined>(undefined);
 // Les sons disponibles dans notre application
 const initialSounds: Sound[] = [
   { id: '1', name: 'Forêt', file: '/sounds/forest.mp3', image: '/images/forest.png', volume: 0.5, isPlaying: false },
-  { id: '2', name: 'Rain on a tin roof', file: '/sounds/rain-tin-roof.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
+  { id: '2', name: 'Pluie sur une bâche', file: '/sounds/rainTente.mp3', image: '/images/tenteUnderRain.jpg', volume: 0.5, isPlaying: false },
   { id: '3', name: 'Wind in the pines', file: '/sounds/wind-pines.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
   { id: '4', name: 'Thunderstorm', file: '/sounds/thunderstorm.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
   { id: '5', name: 'Babbling brook', file: '/sounds/babbling-brook.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
