@@ -42,7 +42,7 @@ const initialSounds: Sound[] = [
   { id: '3', name: 'Campagne', file: '/sounds/campagne.mp3', image: '/images/campagne.png', volume: 0.5, isPlaying: false },
   { id: '4', name: 'Oiseaux', file: '/sounds/bird.mp3', image: '/images/bird.png', volume: 0.5, isPlaying: false },
   { id: '5', name: 'Vent', file: '/sounds/vent.mp3', image: '/images/vent.png', volume: 0.5, isPlaying: false },
-  { id: '6', name: 'Feu de cheminer', file: '/sounds/feu.mp3', image: '/images/fire.png', volume: 0.5, isPlaying: false },
+  { id: '6', name: 'Feu de cheminée', file: '/sounds/feu.mp3', image: '/images/fire.png', volume: 0.5, isPlaying: false },
   { id: '7', name: 'Vagues', file: '/sounds/waves.mp3', image: '/images/waves.png', volume: 0.5, isPlaying: false },
   { id: '8', name: 'Ronronnement de chat', file: '/sounds/cat.mp3', image: '/images/cat.png', volume: 0.5, isPlaying: false },
   { id: '9', name: 'Centre-ville', file: '/sounds/ville.mp3', image: '/images/ville.png', volume: 0.5, isPlaying: false },
