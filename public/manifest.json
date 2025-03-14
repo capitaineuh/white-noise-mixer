@@ -5,7 +5,7 @@
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#007bff",
+    "theme_color": "#0D5D56",
     "icons": [
       {
         "src": "/ico/cha192.png",
@@ -20,14 +20,14 @@
     ],
     "screenshots": [
       {
-        "src": "/images/forest.png",
-        "sizes": "960x639",
+        "src": "/ico/interface.png",
+        "sizes": "1585x746",
         "type": "image/png",
         "form_factor": "wide"
       },
       {
-        "src": "/images/forest.png",
-        "sizes": "960x639",
+        "src": "/ico/interface.png",
+        "sizes": "1585x746",
         "type": "image/png",
         "form_factor": "narrow"
       }
