@@ -22,7 +22,7 @@ const Index: React.FC = () => {
       
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-6">
         <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-4xl font-bold text-white">Bruits Blancs</h1>
+          <h1 className="text-4xl font-bold text-white">J'espère que ça te servira ! Bizou Cha ❤️</h1>
           <SaveMixButton />
         </div>
         

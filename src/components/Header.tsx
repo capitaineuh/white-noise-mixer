@@ -17,10 +17,10 @@ const Header: React.FC = () => {
           className="flex items-center gap-2 group"
         >
           <div className="w-8 h-8 rounded flex items-center justify-center bg-gradient-to-br from-primary to-primary/70">
-            <span className="text-white font-bold text-lg transform -translate-y-0.5">M</span>
+            <span className="text-white font-bold text-lg transform -translate-y-0.5">BB</span>
           </div>
-          <h1 className="text-xl font-semibold text-white">
-            Mindful<span className="text-primary">Noise</span>
+          <h1 className="text-primary w-8 h-8">
+            Bruits<span className="text-x1 font-semibold text-white">Blancs</span>
           </h1>
         </Link>
         

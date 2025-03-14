@@ -39,14 +39,14 @@ const SoundContext = createContext<SoundContextType | undefined>(undefined);
 const initialSounds: Sound[] = [
   { id: '1', name: 'Forêt', file: '/sounds/forest.mp3', image: '/images/forest.png', volume: 0.5, isPlaying: false },
   { id: '2', name: 'Pluie sur une bâche', file: '/sounds/rainTente.mp3', image: '/images/tenteUnderRain.jpg', volume: 0.5, isPlaying: false },
-  { id: '3', name: 'Wind in the pines', file: '/sounds/wind-pines.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
-  { id: '4', name: 'Thunderstorm', file: '/sounds/thunderstorm.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
-  { id: '5', name: 'Babbling brook', file: '/sounds/babbling-brook.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
-  { id: '6', name: 'Crackling fire', file: '/sounds/crackling-fire.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
-  { id: '7', name: 'Crickets at night', file: '/sounds/crickets.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
-  { id: '8', name: 'City street', file: '/sounds/city-street.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
-  { id: '9', name: 'Train passing', file: '/sounds/train.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false },
-  { id: '10', name: 'Fan hum', file: '/sounds/fan.mp3', image: '/lovable-uploads/fb3770f0-608e-4326-8c9c-ffc581af4fb1.png', volume: 0.5, isPlaying: false }
+  { id: '3', name: 'Campagne', file: '/sounds/campagne.mp3', image: '/images/campagne.png', volume: 0.5, isPlaying: false },
+  { id: '4', name: 'Oiseaux', file: '/sounds/bird.mp3', image: '/images/bird.png', volume: 0.5, isPlaying: false },
+  { id: '5', name: 'Vent', file: '/sounds/vent.mp3', image: '/images/vent.png', volume: 0.5, isPlaying: false },
+  { id: '6', name: 'Feu de cheminer', file: '/sounds/feu.mp3', image: '/images/fire.png', volume: 0.5, isPlaying: false },
+  { id: '7', name: 'Vagues', file: '/sounds/waves.mp3', image: '/images/waves.png', volume: 0.5, isPlaying: false },
+  { id: '8', name: 'Ronronnement de chat', file: '/sounds/cat.mp3', image: '/images/cat.png', volume: 0.5, isPlaying: false },
+  { id: '9', name: 'Centre-ville', file: '/sounds/ville.mp3', image: '/images/ville.png', volume: 0.5, isPlaying: false },
+  { id: '10', name: 'Cloche de vaches', file: '/sounds/vaches.mp3', image: '/images/vache.png', volume: 0.5, isPlaying: false }
 ];
 
 export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => {
