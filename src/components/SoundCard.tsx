@@ -31,7 +31,7 @@ const SoundCard: React.FC<SoundCardProps> = ({
     >
       <div className="relative group">
         <img 
-          src={sound.image} 
+          src={sound.imageUrl} 
           alt={sound.name} 
           className="sound-card-img"
           loading="lazy"

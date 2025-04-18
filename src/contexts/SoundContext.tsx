@@ -1,14 +1,10 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import useSounds, { Sound as SoundType } from '../hooks/useSounds'; // Importez le hook useSounds et l'interface Sound
 
 // Types
-export interface Sound {
-  id: string;
-  name: string;
-  file: string;
-  image: string;
-  volume: number;
-  isPlaying: boolean;
+export interface Sound extends SoundType {
+  isPlaying: boolean; // Ajoutez isPlaying à l'interface Sound
 }
 
 export interface SavedMix {
@@ -23,8 +19,10 @@ export interface SavedMix {
 }
 
 interface SoundContextType {
-  sounds: Sound[];
-  setSounds: React.Dispatch<React.SetStateAction<Sound[]>>;
+  sounds: Sound[]; // Inclut maintenant isPlaying
+  loading: boolean;
+  error: string | null;
+  // setSounds: React.Dispatch<React.SetStateAction<Sound[]>>; // Supprimé car géré en interne
   toggleSound: (id: string) => void;
   updateVolume: (id: string, volume: number) => void;
   savedMixes: SavedMix[];
@@ -35,64 +33,52 @@ interface SoundContextType {
 
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
-// Les sons disponibles dans notre application
-const initialSounds: Sound[] = [
-  { id: '1', name: 'Forêt', file: '/sounds/forest.mp3', image: '/images/forest.png', volume: 0.5, isPlaying: false },
-  { id: '2', name: 'Pluie sur une bâche', file: '/sounds/rainTente.mp3', image: '/images/tenteUnderRain.jpg', volume: 0.5, isPlaying: false },
-  { id: '3', name: 'Campagne', file: '/sounds/campagne.mp3', image: '/images/campagne.png', volume: 0.5, isPlaying: false },
-  { id: '4', name: 'Oiseaux', file: '/sounds/bird.mp3', image: '/images/bird.png', volume: 0.5, isPlaying: false },
-  { id: '5', name: 'Vent', file: '/sounds/vent.mp3', image: '/images/vent.png', volume: 0.5, isPlaying: false },
-  { id: '6', name: 'Feu de cheminée', file: '/sounds/feu.mp3', image: '/images/fire.png', volume: 0.5, isPlaying: false },
-  { id: '7', name: 'Vagues', file: '/sounds/waves.mp3', image: '/images/waves.png', volume: 0.5, isPlaying: false },
-  { id: '8', name: 'Ronronnement de chat', file: '/sounds/cat.mp3', image: '/images/cat.png', volume: 0.5, isPlaying: false },
-  { id: '9', name: 'Centre-ville', file: '/sounds/ville.mp3', image: '/images/ville.png', volume: 0.5, isPlaying: false },
-  { id: '10', name: 'Cloche de vaches', file: '/sounds/vaches.mp3', image: '/images/vache.png', volume: 0.5, isPlaying: false }
-];
-
 export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => {
-  const [sounds, setSounds] = useState<Sound[]>(initialSounds);
+  const { sounds, loading, error } = useSounds(); // Utilisez le hook useSounds
+  const [localSounds, setLocalSounds] = useState<Sound[]>([]);
   const [savedMixes, setSavedMixes] = useState<SavedMix[]>([]);
 
-  // Charger les mélanges sauvegardés depuis le stockage local au chargement
   useEffect(() => {
-    const savedMixesData = localStorage.getItem('savedMixes');
-    if (savedMixesData) {
-      try {
-        setSavedMixes(JSON.parse(savedMixesData));
-      } catch (error) {
-        console.error('Failed to parse saved mixes:', error);
+    // Initialise l'état local avec les sons récupérés et ajoute isPlaying
+    setLocalSounds(sounds.map(sound => ({ ...sound, isPlaying: false })));
+  }, [sounds]);
+
+  useEffect(() => {
+      const savedMixesData = localStorage.getItem('savedMixes');
+      if (savedMixesData) {
+          try {
+              setSavedMixes(JSON.parse(savedMixesData));
+          } catch (error) {
+              console.error('Failed to parse saved mixes:', error);
+          }
       }
-    }
   }, []);
 
-  // Sauvegarder les mélanges dans le stockage local lorsqu'ils changent
   useEffect(() => {
-    if (savedMixes.length > 0) {
-      localStorage.setItem('savedMixes', JSON.stringify(savedMixes));
-    }
+      if (savedMixes.length > 0) {
+          localStorage.setItem('savedMixes', JSON.stringify(savedMixes));
+      }
   }, [savedMixes]);
 
-  // Activer/désactiver la lecture d'un son
-  const toggleSound = (id: string) => {
-    setSounds(prevSounds => 
-      prevSounds.map(sound => 
-        sound.id === id 
-          ? { ...sound, isPlaying: !sound.isPlaying } 
-          : sound
-      )
-    );
-  };
+    const toggleSound = (id: string) => {
+        setLocalSounds(prevSounds =>
+            prevSounds.map(sound =>
+                sound.id === id
+                    ? { ...sound, isPlaying: !sound.isPlaying }
+                    : sound
+            )
+        );
+    };
 
-  // Mettre à jour le volume d'un son
-  const updateVolume = (id: string, volume: number) => {
-    setSounds(prevSounds => 
-      prevSounds.map(sound => 
-        sound.id === id 
-          ? { ...sound, volume } 
-          : sound
-      )
-    );
-  };
+    const updateVolume = (id: string, volume: number) => {
+        setLocalSounds(prevSounds =>
+            prevSounds.map(sound =>
+                sound.id === id
+                    ? { ...sound, volume }
+                    : sound
+            )
+        );
+    };
 
   // Sauvegarder le mélange actuel
   const saveMix = (name?: string) => {
@@ -148,10 +134,11 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
   };
 
   return (
-    <SoundContext.Provider value={{ 
-      sounds, 
-      setSounds, 
-      toggleSound, 
+      <SoundContext.Provider value={{
+          sounds: localSounds,
+          loading,
+          error,
+          toggleSound,
       updateVolume,
       savedMixes,
       setSavedMixes,

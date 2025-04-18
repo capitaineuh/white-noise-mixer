@@ -12,7 +12,7 @@ const useSoundPlayer = (sound: Sound) => {
       const audio = new Audio();
       audio.loop = true;
       audio.volume = sound.volume;
-      audio.src = sound.file;
+      audio.src = sound.soundUrl;
       audioRef.current = audio;
     }
     
@@ -22,7 +22,7 @@ const useSoundPlayer = (sound: Sound) => {
         audioRef.current = null;
       }
     };
-  }, [sound.file]);
+  }, [sound.soundUrl]);
 
   // Gérer la lecture/pause
   useEffect(() => {
