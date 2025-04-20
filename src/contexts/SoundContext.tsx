@@ -27,12 +27,13 @@ interface SoundContextType {
   setSavedMixes: React.Dispatch<React.SetStateAction<SavedMix[]>>;
   saveMix: (name?: string) => void;
   loadMix: (mixId: string) => void;
+  refreshSounds: () => Promise<void>;
 }
 
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
 export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => {
-  const { sounds, loading, error } = useSounds();
+  const { sounds, loading, error, refreshSounds } = useSounds();
   const [localSounds, setLocalSounds] = useState<Sound[]>([]);
   const [savedMixes, setSavedMixes] = useState<SavedMix[]>([]);
 
@@ -147,7 +148,8 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
       savedMixes,
       setSavedMixes,
       saveMix,
-      loadMix
+      loadMix,
+      refreshSounds
     }}>
       {children}
     </SoundContext.Provider>

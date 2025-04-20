@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '../lib/firebase'; // Assurez-vous que le chemin est correct
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { useAuth } from './useAuth'; // Importez le hook d'authentification
 
 export interface Sound {
@@ -10,7 +10,8 @@ export interface Sound {
   name: string;
   volume: number;
   isPublic: boolean;
-  isPlaying: boolean; // Add this line
+  isPlaying: boolean;
+  userId?: string;
 }
 
 const useSounds = () => {
@@ -19,53 +20,64 @@ const useSounds = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth(); // Utilisez le hook d'authentification
 
-  useEffect(() => {
-    const fetchSounds = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const soundsRef = collection(db, 'sounds');
-        let q = query(soundsRef, where('isPublic', '==', true)); // Récupère les sons publics
+  const fetchSounds = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const soundsRef = collection(db, 'sounds');
+      
+      // Récupérer les sons publics
+      const publicQuery = query(
+        soundsRef,
+        where('isPublic', '==', true)
+      );
+      const publicSoundsSnapshot = await getDocs(publicQuery);
+      const publicSounds = publicSoundsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        volume: doc.data().volume !== undefined ? doc.data().volume : 0.5,
+        isPlaying: false
+      } as Sound));
 
-        if (user) {
-          // Si l'utilisateur est connecté, récupère aussi ses sons privés
-          const userSoundsQuery = query(soundsRef, where('userId', '==', user.uid)); // Assurez-vous d'avoir un champ userId dans vos documents
-          const publicSoundsSnapshot = await getDocs(q);
-          const userSoundsSnapshot = await getDocs(userSoundsQuery);
+      console.log('Public sounds:', publicSounds);
 
-          const defaultVolume = 0.5;
-
-          const publicSounds = publicSoundsSnapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-              volume: doc.data().volume !== undefined ? doc.data().volume : defaultVolume,
-            } as Sound));
-
-          const userSounds = userSoundsSnapshot.docs.map(doc => ({
+      if (user) {
+        // Récupérer les sons personnalisés de l'utilisateur
+        const userSoundsQuery = query(
+          soundsRef,
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
+        const userSoundsSnapshot = await getDocs(userSoundsQuery);
+        const userSounds = userSoundsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log('User sound data:', data);
+          return {
             id: doc.id,
-            ...doc.data(),
-            volume: doc.data().volume !== undefined ? doc.data().volume : defaultVolume,
-          } as Sound));
+            ...data,
+            volume: data.volume !== undefined ? data.volume : 0.5,
+            isPlaying: false
+          } as Sound;
+        });
 
-          console.log('Fetched sounds:', [...publicSounds, ...userSounds]);
-          setSounds([...publicSounds, ...userSounds]);
-        } else {
-          // Si l'utilisateur n'est pas connecté, récupère seulement les sons publics
-          const publicSoundsSnapshot = await getDocs(q);
-          setSounds(publicSoundsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), volume: doc.data().volume !== undefined ? doc.data().volume : 0.5 } as Sound)));
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch sounds');
-      } finally {
-        setLoading(false);
+        console.log('User sounds:', userSounds);
+        setSounds([...userSounds, ...publicSounds]);
+      } else {
+        setSounds(publicSounds);
       }
+    } catch (error) {
+      console.error('Error fetching sounds:', error);
+      setError('Une erreur est survenue lors du chargement des sons');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
-    };
-
+  useEffect(() => {
     fetchSounds();
-  }, [user]); // Ré-exécute le hook quand l'état de l'utilisateur change
+  }, [fetchSounds]);
 
-  return { sounds, loading, error };
+  return { sounds, loading, error, refreshSounds: fetchSounds };
 };
 
 export default useSounds;
