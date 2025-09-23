@@ -127,4 +127,14 @@
   .volume-slider::-moz-range-thumb {
     @apply bg-primary h-4 w-4 rounded-full appearance-none cursor-pointer;
   }
+
+  /* Masquer la scrollbar pour les filtres de sons */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari et Chrome */
+  }
 }
