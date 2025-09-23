@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import useSounds, { Sound as SoundType } from '../hooks/useSounds';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useSounds } from '../hooks/useSounds';
+import { Sound } from '../types/sound';
 
 // Types
-export interface Sound extends SoundType {
+export interface SoundWithState extends Sound {
   isPlaying: boolean;
 }
 
@@ -17,8 +18,8 @@ export interface SavedMix {
   }[];
 }
 
-interface SoundContextType {
-  sounds: Sound[];
+export interface SoundContextType {
+  sounds: SoundWithState[];
   loading: boolean;
   error: string | null;
   toggleSound: (id: string) => void;
@@ -28,14 +29,24 @@ interface SoundContextType {
   saveMix: (name?: string) => void;
   loadMix: (mixId: string) => void;
   refreshSounds: () => Promise<void>;
+  setTimer: (minutes: number, mixId?: string) => void;
+  remainingTime: number | null;
+  clearTimer: () => void;
+  isAlarmMode: boolean;
+  setIsAlarmMode: (mode: boolean) => void;
+  scheduledMixId: string | null;
 }
 
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
 export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const { sounds, loading, error, refreshSounds } = useSounds();
-  const [localSounds, setLocalSounds] = useState<Sound[]>([]);
+  const [localSounds, setLocalSounds] = useState<SoundWithState[]>([]);
   const [savedMixes, setSavedMixes] = useState<SavedMix[]>([]);
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
+  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
+  const [isAlarmMode, setIsAlarmMode] = useState(false);
+  const [scheduledMixId, setScheduledMixId] = useState<string | null>(null);
 
   useEffect(() => {
     setLocalSounds(sounds.map(sound => ({ ...sound, isPlaying: false })));
@@ -45,8 +56,9 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
     const savedMixesData = localStorage.getItem('savedMixes');
     if (savedMixesData) {
       try {
-        const parsedMixes = JSON.parse(savedMixesData);
-        const mixesWithDates = parsedMixes.map((mix: any) => ({
+        type StoredSavedMix = Omit<SavedMix, 'date'> & { date: string };
+        const parsedMixes = JSON.parse(savedMixesData) as StoredSavedMix[];
+        const mixesWithDates: SavedMix[] = parsedMixes.map((mix) => ({
           ...mix,
           date: new Date(mix.date)
         }));
@@ -138,6 +150,58 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
     setLocalSounds(updatedSounds);
   };
 
+  const setTimer = useCallback((minutes: number, mixId?: string) => {
+    if (timerId) {
+      clearInterval(timerId);
+    }
+
+    const endTime = Date.now() + minutes * 60 * 1000;
+    
+    const newTimerId = setInterval(() => {
+      const remaining = Math.ceil((endTime - Date.now()) / 1000 / 60);
+      
+      if (remaining <= 0) {
+        if (isAlarmMode && mixId) {
+          // Charger et démarrer le mix programmé
+          loadMix(mixId);
+        } else {
+          // Mode arrêt automatique : arrêter tous les sons
+          setLocalSounds(prevSounds =>
+            prevSounds.map(sound => ({ ...sound, isPlaying: false }))
+          );
+        }
+        clearInterval(newTimerId);
+        setRemainingTime(null);
+        setTimerId(null);
+        setScheduledMixId(null);
+      } else {
+        setRemainingTime(remaining);
+      }
+    }, 1000);
+
+    setTimerId(newTimerId);
+    setRemainingTime(minutes);
+    setScheduledMixId(mixId || null);
+  }, [isAlarmMode, loadMix, timerId]);
+
+  const clearTimer = useCallback(() => {
+    if (timerId) {
+      clearInterval(timerId);
+      setTimerId(null);
+      setRemainingTime(null);
+      setScheduledMixId(null);
+    }
+  }, [timerId]);
+
+  // Nettoyer le timer lors du démontage
+  useEffect(() => {
+    return () => {
+      if (timerId) {
+        clearInterval(timerId);
+      }
+    };
+  }, [timerId]);
+
   return (
     <SoundContext.Provider value={{
       sounds: localSounds,
@@ -149,7 +213,13 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
       setSavedMixes,
       saveMix,
       loadMix,
-      refreshSounds
+      refreshSounds,
+      setTimer,
+      remainingTime,
+      clearTimer,
+      isAlarmMode,
+      setIsAlarmMode,
+      scheduledMixId
     }}>
       {children}
     </SoundContext.Provider>

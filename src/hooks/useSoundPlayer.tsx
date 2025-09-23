@@ -1,6 +1,5 @@
-
 import { useEffect, useRef } from 'react';
-import { Sound } from '../contexts/SoundContext';
+import { Sound } from '@/types/sound';
 
 // Custom hook pour gérer la lecture audio
 const useSoundPlayer = (sound: Sound) => {
@@ -8,12 +7,23 @@ const useSoundPlayer = (sound: Sound) => {
 
   // Créer un élément audio si nécessaire
   useEffect(() => {
+    if (!sound.soundUrl) {
+      console.error('URL audio manquante pour le son:', sound.name);
+      return;
+    }
+
     if (!audioRef.current) {
       const audio = new Audio();
       audio.loop = true;
       audio.volume = sound.volume;
-      audio.src = sound.soundUrl;
-      audioRef.current = audio;
+      
+      try {
+        audio.src = sound.soundUrl;
+        audio.load(); // Force le chargement de l'audio
+        audioRef.current = audio;
+      } catch (error) {
+        console.error('Erreur lors du chargement de l\'audio:', error);
+      }
     }
     
     return () => {
@@ -22,7 +32,7 @@ const useSoundPlayer = (sound: Sound) => {
         audioRef.current = null;
       }
     };
-  }, [sound.soundUrl]);
+  }, [sound.soundUrl, sound.name, sound.volume]);
 
   // Gérer la lecture/pause
   useEffect(() => {

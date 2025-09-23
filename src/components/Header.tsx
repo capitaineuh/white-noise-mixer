@@ -1,13 +1,18 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, User, SaveAll, Plus } from 'lucide-react';
+import { LogIn, LogOut, User, SaveAll } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import AddCustomSoundButton from './AddCustomSoundButton';
+import { useSoundContext } from '@/contexts/SoundContext';
+import SaveMixDialog from '@/components/SaveMixDialog';
+import LoadMixDialog from '@/components/LoadMixDialog';
+import TimerDialog from '@/components/TimerDialog';
+import TimerDisplay from '@/components/TimerDisplay';
 
 const Header: React.FC = () => {
   const { user, signInWithGoogle, signOut, loading } = useAuth();
   const location = useLocation();
+  const { setTimer, remainingTime, clearTimer } = useSoundContext();
   
   return (
     <header className="w-full px-6 py-4 bg-mindful-900/50 backdrop-blur-md border-b border-mindful-800 sticky top-0 z-50">
@@ -19,14 +24,21 @@ const Header: React.FC = () => {
           <div className="w-8 h-8 rounded flex items-center justify-center bg-gradient-to-br from-primary to-primary/70">
             <span className="text-white font-bold text-lg transform -translate-y-0.5">BB</span>
           </div>
-          <h1 className="text-primary w-8 h-8">
-            Bruits<span className="text-x1 font-semibold text-white">Blancs</span>
+          <h1 className="text-primary">
+            Bruits<span className="text-xl font-semibold text-white">Blancs</span>
           </h1>
         </Link>
         
         <div className="flex items-center gap-3">
           {user && (
             <>
+              {remainingTime !== null && (
+                <TimerDisplay
+                  remainingTime={remainingTime}
+                  onClear={clearTimer}
+                />
+              )}
+              <TimerDialog onSetTimer={setTimer} />
               <Link to="/saved-mixes">
                 <Button 
                   variant="outline" 
@@ -41,7 +53,6 @@ const Header: React.FC = () => {
                   <span className="hidden sm:inline">Mes mixes</span>
                 </Button>
               </Link>
-              <AddCustomSoundButton />
             </>
           )}
           

@@ -1,24 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../lib/firebase'; // Assurez-vous que le chemin est correct
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { useAuth } from './useAuth'; // Importez le hook d'authentification
+import { useAuth } from '@/hooks/useAuth';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Sound, SoundCategory } from '@/types/sound';
+import { Timestamp } from 'firebase/firestore';
 
-export interface Sound {
-  id: string;
-  imageUrl: string;
-  soundUrl: string;
-  name: string;
-  volume: number;
-  isPublic: boolean;
-  isPlaying: boolean;
-  userId?: string;
-}
-
-const useSounds = () => {
+export function useSounds() {
   const [sounds, setSounds] = useState<Sound[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth(); // Utilisez le hook d'authentification
+  const { user } = useAuth();
 
   const fetchSounds = useCallback(async () => {
     setLoading(true);
@@ -27,22 +18,28 @@ const useSounds = () => {
       const soundsRef = collection(db, 'sounds');
       
       // Récupérer les sons publics
-      const publicQuery = query(
-        soundsRef,
-        where('isPublic', '==', true)
-      );
+      const publicQuery = query(soundsRef, where('isPublic', '==', true));
       const publicSoundsSnapshot = await getDocs(publicQuery);
-      const publicSounds = publicSoundsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        volume: doc.data().volume !== undefined ? doc.data().volume : 0.5,
-        isPlaying: false
-      } as Sound));
+      const publicSounds = publicSoundsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          description: data.description || '',
+          soundUrl: data.soundUrl,
+          imageUrl: data.imageUrl,
+          isPublic: data.isPublic,
+          volume: data.volume !== undefined ? data.volume : 0.5,
+          isPlaying: false,
+          category: data.category || 'autres' as SoundCategory,
+          userId: data.userId
+        };
+      });
 
-      console.log('Public sounds:', publicSounds);
-
+      // Récupérer les sons personnalisés de l'utilisateur
+      let allSounds = [...publicSounds];
+      
       if (user) {
-        // Récupérer les sons personnalisés de l'utilisateur
         const userSoundsQuery = query(
           soundsRef,
           where('userId', '==', user.uid),
@@ -51,20 +48,28 @@ const useSounds = () => {
         const userSoundsSnapshot = await getDocs(userSoundsQuery);
         const userSounds = userSoundsSnapshot.docs.map(doc => {
           const data = doc.data();
-          console.log('User sound data:', data);
           return {
             id: doc.id,
-            ...data,
+            name: data.name,
+            description: data.description || '',
+            soundUrl: data.soundUrl,
+            imageUrl: data.imageUrl,
+            isPublic: data.isPublic,
             volume: data.volume !== undefined ? data.volume : 0.5,
-            isPlaying: false
-          } as Sound;
+            isPlaying: false,
+            category: data.category || 'autres' as SoundCategory,
+            userId: data.userId
+          };
         });
 
-        console.log('User sounds:', userSounds);
-        setSounds([...userSounds, ...publicSounds]);
-      } else {
-        setSounds(publicSounds);
+        // Filtrer les doublons en donnant la priorité aux sons de l'utilisateur
+        const seenIds = new Set(userSounds.map(sound => sound.id));
+        const filteredPublicSounds = publicSounds.filter(sound => !seenIds.has(sound.id));
+        allSounds = [...userSounds, ...filteredPublicSounds];
       }
+
+      console.log('Sons chargés:', allSounds.map(s => ({ id: s.id, name: s.name })));
+      setSounds(allSounds);
     } catch (error) {
       console.error('Error fetching sounds:', error);
       setError('Une erreur est survenue lors du chargement des sons');
@@ -77,7 +82,32 @@ const useSounds = () => {
     fetchSounds();
   }, [fetchSounds]);
 
-  return { sounds, loading, error, refreshSounds: fetchSounds };
-};
+  const toggleSound = (soundId: string) => {
+    setSounds(prevSounds =>
+      prevSounds.map(sound =>
+        sound.id === soundId
+          ? { ...sound, isPlaying: !sound.isPlaying }
+          : sound
+      )
+    );
+  };
 
-export default useSounds;
+  const updateVolume = (soundId: string, volume: number) => {
+    setSounds(prevSounds =>
+      prevSounds.map(sound =>
+        sound.id === soundId
+          ? { ...sound, volume }
+          : sound
+      )
+    );
+  };
+
+  return {
+    sounds,
+    loading,
+    error,
+    toggleSound,
+    updateVolume,
+    refreshSounds: fetchSounds
+  };
+}
