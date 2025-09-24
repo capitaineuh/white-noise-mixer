@@ -11,6 +11,8 @@ export interface SavedMix {
   id: string;
   name: string;
   date: Date;
+  imageUrl?: string; // Image optionnelle pour le mix
+  isPublic: boolean; // Mix public ou privé
   sounds: {
     id: string;
     volume: number;
@@ -26,7 +28,7 @@ export interface SoundContextType {
   updateVolume: (id: string, volume: number) => void;
   savedMixes: SavedMix[];
   setSavedMixes: React.Dispatch<React.SetStateAction<SavedMix[]>>;
-  saveMix: (name?: string) => void;
+  saveMix: (name?: string, imageUrl?: string, isPublic?: boolean) => void;
   loadMix: (mixId: string) => void;
   refreshSounds: () => Promise<void>;
   setTimer: (minutes: number, mixId?: string) => void;
@@ -98,7 +100,7 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
     );
   };
 
-  const saveMix = (name?: string) => {
+  const saveMix = (name?: string, imageUrl?: string, isPublic?: boolean) => {
     const activeSounds = localSounds.filter(sound => sound.isPlaying);
     
     if (activeSounds.length === 0) {
@@ -109,6 +111,8 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
       id: Date.now().toString(),
       name: name || `Mix ${savedMixes.length + 1}`,
       date: new Date(),
+      imageUrl: imageUrl || undefined,
+      isPublic: isPublic || false,
       sounds: activeSounds.map(sound => ({
         id: sound.id,
         volume: sound.volume,

@@ -9,8 +9,25 @@ import SavedMixes from "./pages/SavedMixes";
 import NotFound from "./pages/NotFound";
 import { SoundProvider } from "./contexts/SoundContext";
 import { AuthProvider } from "./hooks/useAuth";
+import { useMixLockScreen, useLockScreenMetadata } from "./hooks/useMixLockScreen";
 
 const queryClient = new QueryClient();
+
+// Composant interne pour utiliser les hooks dans le contexte SoundProvider
+const AppContent = () => {
+  useMixLockScreen();
+  useLockScreenMetadata();
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/saved-mixes" element={<SavedMixes />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -19,13 +36,7 @@ const App = () => (
         <SoundProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/saved-mixes" element={<SavedMixes />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <AppContent />
         </SoundProvider>
       </AuthProvider>
     </TooltipProvider>

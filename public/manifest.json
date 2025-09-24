@@ -1,20 +1,31 @@
 {
-    "name": "Bruits blancs",
-    "short_name": "BB",
-    "description": "Ensemble de bruits blanc pour aider a la concentration",
+    "name": "Bruits Blancs - Mixer de Sons",
+    "short_name": "BB Mixer",
+    "description": "Application de bruits blancs pour la concentration et la relaxation",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
+    "orientation": "portrait-primary",
+    "background_color": "#0D5D56",
     "theme_color": "#0D5D56",
+    "scope": "/",
+    "lang": "fr",
+    "categories": ["productivity", "lifestyle", "utilities"],
     "icons": [
       {
         "src": "/ico/cha192.png",
         "sizes": "192x192",
-        "type": "image/png"
+        "type": "image/png",
+        "purpose": "any maskable"
       },
       {
         "src": "/ico/cha512.png",
         "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
+        "src": "/ico/favicon-16x16.png",
+        "sizes": "16x16",
         "type": "image/png"
       }
     ],
@@ -23,13 +34,15 @@
         "src": "/ico/interface.png",
         "sizes": "1585x746",
         "type": "image/png",
-        "form_factor": "wide"
+        "form_factor": "wide",
+        "label": "Interface principale de l'application"
       },
       {
         "src": "/ico/interface.png",
         "sizes": "1585x746",
         "type": "image/png",
-        "form_factor": "narrow"
+        "form_factor": "narrow",
+        "label": "Interface mobile de l'application"
       }
     ]
   }

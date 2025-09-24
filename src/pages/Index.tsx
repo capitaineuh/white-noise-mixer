@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSoundContext } from '../contexts/SoundContext';
 import SoundCard from '../components/SoundCard';
-import SaveMixButton from '../components/SaveMixButton';
+import SaveMixDialog from '../components/SaveMixDialog';
 import Header from '../components/Header';
 import BuyMeACoffeeButton from "../components/ui/bmc";
 import { SoundFilters } from "@/components/SoundFilters";
@@ -32,7 +32,7 @@ const Index: React.FC = () => {
         <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <BuyMeACoffeeButton />
           <div className="flex items-center gap-4">
-            <SaveMixButton />
+            <SaveMixDialog />
             <AddCustomSoundButton />
           </div>
         </div>

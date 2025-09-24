@@ -8,6 +8,7 @@ import SaveMixDialog from '@/components/SaveMixDialog';
 import LoadMixDialog from '@/components/LoadMixDialog';
 import TimerDialog from '@/components/TimerDialog';
 import TimerDisplay from '@/components/TimerDisplay';
+import PWAInstallButton from '@/components/PWAInstallButton';
 
 const Header: React.FC = () => {
   const { user, signInWithGoogle, signOut, loading } = useAuth();
@@ -30,6 +31,8 @@ const Header: React.FC = () => {
         </Link>
         
         <div className="flex items-center gap-3">
+          <PWAInstallButton />
+          
           {user && (
             <>
               {remainingTime !== null && (
