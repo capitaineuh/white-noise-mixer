@@ -29,7 +29,9 @@ const PWAInstallButton: React.FC = () => {
       }
 
       // Pour iOS Safari
-      if ((window.navigator as any).standalone === true) {
+      type NavigatorWithStandalone = Navigator & { standalone?: boolean };
+      const nav = window.navigator as NavigatorWithStandalone;
+      if (nav.standalone === true) {
         setIsInstalled(true);
         return;
       }

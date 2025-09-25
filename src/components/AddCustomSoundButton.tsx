@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 const AddCustomSoundButton: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -194,14 +195,46 @@ const AddCustomSoundButton: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sound" className="text-white text-sm font-medium">
-                Fichier audio (MP3)
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="sound" className="text-white text-sm font-medium">
+                  Fichier audio (M4A, MP3)
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Informations sur les fichiers"
+                      className="text-white/70 hover:text-white focus:outline-none"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="bg-mindful-800 border-mindful-700 text-white w-80">
+                    <div className="space-y-2 text-sm">
+                      <p className="font-medium">Importer un enregistrement Dictaphone (iPhone)</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Envoi des fichiers : un par envoi.</li>
+                        <li>Dictaphone : durée maximale 5 minutes.</li>
+                      </ul>
+                      <div className="space-y-1">
+                        <p className="font-medium">Étapes</p>
+                        <ol className="list-decimal pl-4 space-y-1 text-white/90">
+                          <li>Ouvrez l’app Dictaphone et choisissez votre enregistrement.</li>
+                          <li>Touchez l’icône de partage (carré avec flèche vers le haut).</li>
+                          <li>Choisissez « Enregistrer dans Fichiers » et validez l’emplacement.</li>
+                          <li>Revenez ici, cliquez sur « Fichier audio », sélectionnez le fichier depuis Fichiers, puis validez.</li>
+                        </ol>
+                        <p className="text-white/70">Un message d’erreur s’affichera si les conditions ci-dessus ne sont pas respectées.</p>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="relative">
                 <Input
                   id="sound"
                   type="file"
-                  accept="audio/mp3"
+                  accept="audio/*"
                   onChange={handleSoundFileChange}
                   className="bg-mindful-800 border-mindful-700 text-white h-10 w-full text-sm
                     file:mr-2 file:py-1.5

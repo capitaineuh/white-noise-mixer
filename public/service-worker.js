@@ -1,22 +1,21 @@
-const CACHE_NAME = "pwa-cache-v1";
-const urlsToCache = [
+const CACHE_NAME = "pwa-cache-v2";
+const PRECACHE_URLS = [
   "/",
   "/index.html",
   "/manifest.json",
   "/ico/cha192.png",
-  "/ico/cha512.png"
+  "/ico/cha512.png",
+  "/ico/favicon-16x16.png",
+  "/ico/favicon.ico"
 ];
 
-// Installation du service worker et mise en cache des fichiers
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
+  self.skipWaiting();
 });
 
-// Activation du service worker et suppression des caches obsolètes
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -29,13 +28,37 @@ self.addEventListener("activate", (event) => {
       );
     })
   );
+  self.clients.claim();
 });
 
-// Interception des requêtes pour servir les fichiers en cache
+// Cache-first pour assets; fallback SPA pour navigations
 self.addEventListener("fetch", (event) => {
+  const request = event.request;
+
+  // Ne gère que les requêtes GET
+  if (request.method !== "GET") {
+    return;
+  }
+
+  // Navigations: renvoyer index.html en offline
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() => caches.match("/index.html"))
+    );
+    return;
+  }
+
+  // Cache-first pour le reste (même origine)
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        const responseClone = response.clone();
+        if (request.url.startsWith(self.location.origin)) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+        }
+        return response;
+      }).catch(() => cached);
     })
   );
 });

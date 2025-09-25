@@ -1,6 +1,7 @@
 {
     "name": "Bruits Blancs - Mixer de Sons",
     "short_name": "BB Mixer",
+    "id": "/",
     "description": "Application de bruits blancs pour la concentration et la relaxation",
     "start_url": "/",
     "display": "standalone",

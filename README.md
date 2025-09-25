@@ -1,7 +1,6 @@
-npm run dev```
+npm run dev
 
-This project is built with .
-
+Technos utilisés :
 - Vite
 - TypeScript
 - React
