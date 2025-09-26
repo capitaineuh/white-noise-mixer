@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { Sound } from '@/types/sound';
 
 // Custom hook pour gérer la lecture audio
@@ -16,7 +16,7 @@ const useSoundPlayer = (sound: Sound) => {
     if (!audioRef.current && !isInitializedRef.current) {
       const audio = new Audio();
       audio.loop = true;
-      audio.volume = sound.volume;
+      audio.volume = 0;
       audio.preload = 'auto';
       // iOS/Android: éviter plein écran vidéo
       // @ts-expect-error playsInline n'est pas toujours typé
@@ -42,7 +42,7 @@ const useSoundPlayer = (sound: Sound) => {
         isInitializedRef.current = false;
       }
     };
-  }, [sound.soundUrl, sound.name]); // Retiré sound.volume des dépendances
+  }, [sound.soundUrl, sound.name]);
 
   // Gérer la lecture/pause avec fade in/out
   useEffect(() => {
@@ -126,7 +126,7 @@ const useSoundPlayer = (sound: Sound) => {
       
       fadeOut();
     }
-  }, [sound.isPlaying, sound.volume]);
+  }, [sound.isPlaying, sound.volume, sound.soundUrl, sound.name]);
 
   // Mettre à jour le volume sans recréer l'audio
   useEffect(() => {

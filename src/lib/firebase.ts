@@ -9,7 +9,8 @@ const firebaseConfig = {
   authDomain: "whitenoises-548eb.firebaseapp.com",
   databaseURL: "https://whitenoises-548eb-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "whitenoises-548eb",
-  storageBucket: "whitenoises-548eb.firebasestorage.app",
+  // Utiliser le domaine appspot.com attendu par Firebase Storage
+  storageBucket: "whitenoises-548eb.appspot.com",
   messagingSenderId: "346886479256",
   appId: "1:346886479256:web:97e2d22de3ee54494b1fed"
 };

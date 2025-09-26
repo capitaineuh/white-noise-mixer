@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useSounds } from '../hooks/useSounds';
 import { Sound } from '../types/sound';
@@ -126,33 +127,35 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
     });
   };
 
-  const loadMix = (mixId: string) => {
+  const loadMix = useCallback((mixId: string) => {
     const mixToLoad = savedMixes.find(mix => mix.id === mixId);
     
     if (!mixToLoad) {
       return;
     }
 
-    const resetSounds = localSounds.map(sound => ({
-      ...sound,
-      isPlaying: false,
-      volume: 0.5
-    }));
+    setLocalSounds(prevSounds => {
+      const resetSounds = prevSounds.map(sound => ({
+        ...sound,
+        isPlaying: false,
+        volume: 0.5
+      }));
 
-    const updatedSounds = resetSounds.map(sound => {
-      const savedSound = mixToLoad.sounds.find(s => s.id === sound.id);
-      if (savedSound) {
-        return {
-          ...sound,
-          isPlaying: savedSound.isPlaying,
-          volume: savedSound.volume
-        };
-      }
-      return sound;
+      const updatedSounds = resetSounds.map(sound => {
+        const savedSound = mixToLoad.sounds.find(s => s.id === sound.id);
+        if (savedSound) {
+          return {
+            ...sound,
+            isPlaying: savedSound.isPlaying,
+            volume: savedSound.volume
+          };
+        }
+        return sound;
+      });
+
+      return updatedSounds;
     });
-
-    setLocalSounds(updatedSounds);
-  };
+  }, [savedMixes]);
 
   const setTimer = useCallback((minutes: number, mixId?: string) => {
     if (timerId) {
