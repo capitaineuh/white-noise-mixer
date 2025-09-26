@@ -52,9 +52,35 @@ const AddCustomSoundButton: React.FC = () => {
   }, [user]);
 
   const handleSoundFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSoundFile(e.target.files[0]);
+    if (!e.target.files || !e.target.files[0]) return;
+
+    const file = e.target.files[0];
+    const fileName = file.name.toLowerCase();
+    const fileType = (file.type || '').toLowerCase();
+
+    const allowedExtensions = [
+      '.m4a', '.mp3', '.wav', '.aac', '.flac', '.aiff', '.aif', '.caf', '.m4b', '.mpeg'
+    ];
+    const allowedMimes = [
+      'audio/m4a', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav',
+      'audio/aac', 'audio/x-aiff', 'audio/aiff', 'audio/flac', 'audio/x-caf',
+      // iOS Voice Memos peut marquer .m4a comme video/mp4
+      'video/mp4'
+    ];
+
+    const hasAllowedExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    const hasAllowedMime = allowedMimes.includes(fileType);
+
+    if (!hasAllowedExtension && !hasAllowedMime) {
+      toast({
+        title: 'Format non supporté',
+        description: 'Veuillez sélectionner un fichier audio (m4a, mp3, wav, aac, flac, aiff).',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    setSoundFile(file);
   };
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,9 +95,22 @@ const AddCustomSoundButton: React.FC = () => {
 
     setLoading(true);
     try {
-      // Upload sound file
+      // Upload sound file (forcer un contentType correct pour compat iOS)
       const soundRef = ref(storage, `sounds/${user.uid}/${Date.now()}_${soundFile.name}`);
-      await uploadBytes(soundRef, soundFile);
+
+      const lowerName = soundFile.name.toLowerCase();
+      const inferContentType = () => {
+        if (lowerName.endsWith('.m4a') || lowerName.endsWith('.m4b')) return 'audio/mp4';
+        if (lowerName.endsWith('.mp3') || lowerName.endsWith('.mpeg')) return 'audio/mpeg';
+        if (lowerName.endsWith('.wav')) return 'audio/wav';
+        if (lowerName.endsWith('.aac')) return 'audio/aac';
+        if (lowerName.endsWith('.flac')) return 'audio/flac';
+        if (lowerName.endsWith('.aiff') || lowerName.endsWith('.aif')) return 'audio/aiff';
+        if (lowerName.endsWith('.caf')) return 'audio/x-caf';
+        return soundFile.type || 'application/octet-stream';
+      };
+
+      await uploadBytes(soundRef, soundFile, { contentType: inferContentType() });
       const soundUrl = await getDownloadURL(soundRef);
 
       // Upload image file
@@ -234,7 +273,7 @@ const AddCustomSoundButton: React.FC = () => {
                 <Input
                   id="sound"
                   type="file"
-                  accept="audio/*"
+                  accept=".m4a,.mp3,.wav,.aac,.flac,.aiff,.aif,.caf,.m4b,.mpeg,audio/m4a,audio/mp4,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/x-caf,audio/x-aiff,audio/flac,video/mp4"
                   onChange={handleSoundFileChange}
                   className="bg-mindful-800 border-mindful-700 text-white h-10 w-full text-sm
                     file:mr-2 file:py-1.5
