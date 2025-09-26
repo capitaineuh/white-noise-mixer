@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { devLog } from "./utils";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from 'firebase/storage';
@@ -9,8 +10,8 @@ const firebaseConfig = {
   authDomain: "whitenoises-548eb.firebaseapp.com",
   databaseURL: "https://whitenoises-548eb-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "whitenoises-548eb",
-  // Utiliser le domaine appspot.com attendu par Firebase Storage
-  storageBucket: "whitenoises-548eb.appspot.com",
+  // Aligner avec le bucket réellement existant (voir console/gsutil)
+  storageBucket: "whitenoises-548eb.firebasestorage.app",
   messagingSenderId: "346886479256",
   appId: "1:346886479256:web:97e2d22de3ee54494b1fed"
 };
@@ -21,5 +22,10 @@ const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 const db = getFirestore(app);
 const storage = getStorage(app);
+
+// Diagnostic: logs uniquement en dev local
+if (typeof window !== 'undefined') {
+  devLog('[Firebase] storageBucket utilisé:', app.options.storageBucket);
+}
 
 export { auth, googleProvider, db, storage };
