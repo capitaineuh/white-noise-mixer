@@ -273,7 +273,7 @@ const AddCustomSoundButton: React.FC = () => {
                 <Input
                   id="sound"
                   type="file"
-                  accept=".m4a,.mp3,.wav,.aac,.flac,.aiff,.aif,.caf,.m4b,.mpeg,audio/m4a,audio/mp4,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/x-caf,audio/x-aiff,audio/flac,video/mp4"
+                  accept=".m4a,.mp3,.wav,.aac,.flac,.aiff,.aif,.caf,.m4b,.mpeg,audio/m4a,audio/mp4,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/x-caf,audio/x-aiff,audio/flac"
                   onChange={handleSoundFileChange}
                   className="bg-mindful-800 border-mindful-700 text-white h-10 w-full text-sm
                     file:mr-2 file:py-1.5

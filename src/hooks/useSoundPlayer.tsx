@@ -18,7 +18,10 @@ const useSoundPlayer = (sound: Sound) => {
       audio.loop = true;
       audio.volume = sound.volume;
       audio.preload = 'auto';
-      
+      // iOS/Android: éviter plein écran vidéo
+      // @ts-expect-error playsInline n'est pas toujours typé
+      audio.playsInline = true;
+      // Meilleur support CORS
       // Configuration pour une meilleure qualité audio
       audio.crossOrigin = 'anonymous';
       
@@ -63,8 +66,46 @@ const useSoundPlayer = (sound: Sound) => {
                 clearInterval(fadeInInterval);
               }
             }, 20);
-          }).catch(error => {
-            console.error('Audio playback failed:', error);
+          }).catch(async (error) => {
+            console.warn('Lecture audio directe échouée, tentative de fallback blob:', error);
+            try {
+              // Télécharger et forcer un blob audio pour corriger les types m4a marqués video/mp4
+              const response = await fetch(sound.soundUrl, { mode: 'cors' });
+              const blob = await response.blob();
+              const nameLower = (sound.name || '').toLowerCase();
+              let forcedType = blob.type;
+              if (!forcedType || forcedType === 'video/mp4') {
+                if (nameLower.endsWith('.m4a') || nameLower.endsWith('.m4b')) forcedType = 'audio/mp4';
+                else if (nameLower.endsWith('.mp3') || nameLower.endsWith('.mpeg')) forcedType = 'audio/mpeg';
+                else if (nameLower.endsWith('.wav')) forcedType = 'audio/wav';
+                else if (nameLower.endsWith('.aac')) forcedType = 'audio/aac';
+                else if (nameLower.endsWith('.flac')) forcedType = 'audio/flac';
+                else if (nameLower.endsWith('.aiff') || nameLower.endsWith('.aif')) forcedType = 'audio/aiff';
+              }
+
+              const audioBlob = forcedType ? new Blob([blob], { type: forcedType }) : blob;
+              const objectUrl = URL.createObjectURL(audioBlob);
+              const previousSrc = audio.src;
+              audio.src = objectUrl;
+              const play2 = audio.play();
+              if (play2) await play2;
+
+              // Nettoyage de l'ancien Object URL si existant
+              if (previousSrc && previousSrc.startsWith('blob:')) {
+                URL.revokeObjectURL(previousSrc);
+              }
+
+              // Fade in après fallback
+              const fadeInInterval = setInterval(() => {
+                if (audio.volume < sound.volume) {
+                  audio.volume = Math.min(audio.volume + 0.05, sound.volume);
+                } else {
+                  clearInterval(fadeInInterval);
+                }
+              }, 20);
+            } catch (e) {
+              console.error('Échec du fallback blob pour lecture audio:', e);
+            }
           });
         }
       };
