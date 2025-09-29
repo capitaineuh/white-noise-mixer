@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/components/ui/use-toast';
 import { db, storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useSoundContext } from '@/contexts/SoundContext';
 import { SoundCategory } from "@/types/sound";
@@ -38,6 +38,8 @@ const AddCustomSoundButton: React.FC = () => {
   const [category, setCategory] = useState<SoundCategory>("autres");
   const [isPublic, setIsPublic] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadLabel, setUploadLabel] = useState<string>('');
   const { user } = useAuth();
   const { refreshSounds } = useSoundContext();
 
@@ -94,6 +96,8 @@ const AddCustomSoundButton: React.FC = () => {
     if (!user || !soundFile || !imageFile) return;
 
     setLoading(true);
+    setUploadProgress(0);
+    setUploadLabel('Préparation…');
     try {
       // Upload sound file (forcer un contentType correct pour compat iOS)
       const soundRef = ref(storage, `sounds/${user.uid}/${Date.now()}_${soundFile.name}`);
@@ -110,15 +114,32 @@ const AddCustomSoundButton: React.FC = () => {
         return soundFile.type || 'application/octet-stream';
       };
 
-      await uploadBytes(soundRef, soundFile, { contentType: inferContentType() });
+      // Son: suivi de progression
+      setUploadLabel('Envoi du son…');
+      await new Promise<void>((resolve, reject) => {
+        const task = uploadBytesResumable(soundRef, soundFile, { contentType: inferContentType() });
+        task.on('state_changed', (snapshot) => {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setUploadProgress(pct * 0.6); // 60% du temps alloué au son
+        }, (err) => reject(err), () => resolve());
+      });
       const soundUrl = await getDownloadURL(soundRef);
 
       // Upload image file
       const imageRef = ref(storage, `images/${user.uid}/${Date.now()}_${imageFile.name}`);
-      await uploadBytes(imageRef, imageFile);
+      setUploadLabel('Envoi de l’image…');
+      await new Promise<void>((resolve, reject) => {
+        const task = uploadBytesResumable(imageRef, imageFile);
+        task.on('state_changed', (snapshot) => {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          // Les 40% restants pour l'image
+          setUploadProgress(60 + pct * 0.4);
+        }, (err) => reject(err), () => resolve());
+      });
       const imageUrl = await getDownloadURL(imageRef);
 
       // Add to Firestore
+      setUploadLabel('Finalisation…');
       await addDoc(collection(db, 'sounds'), {
         name,
         description,
@@ -156,6 +177,8 @@ const AddCustomSoundButton: React.FC = () => {
       });
     } finally {
       setLoading(false);
+      setUploadProgress(0);
+      setUploadLabel('');
     }
   };
 
@@ -310,6 +333,18 @@ const AddCustomSoundButton: React.FC = () => {
                 />
               </div>
             </div>
+
+            {loading && (
+              <div className="space-y-2">
+                <div className="text-xs text-white/70">{uploadLabel} {Math.round(uploadProgress)}%</div>
+                <div className="h-2 w-full bg-mindful-800 rounded">
+                  <div
+                    className="h-2 bg-white rounded transition-[width] duration-150"
+                    style={{ width: `${Math.min(100, Math.max(0, uploadProgress))}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center space-x-3 pt-2">
               <Checkbox
