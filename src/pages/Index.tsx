@@ -7,10 +7,13 @@ import BuyMeACoffeeButton from "../components/ui/bmc";
 import { SoundFilters } from "@/components/SoundFilters";
 import { SoundCategory } from "@/types/sound";
 import AddCustomSoundButton from "@/components/AddCustomSoundButton";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index: React.FC = () => {
   const { sounds, toggleSound, updateVolume, loading, error } = useSoundContext();
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<SoundCategory | null>(null);
+  const [myOnly, setMyOnly] = useState(false);
 
   useEffect(() => {
     // Précharger les images
@@ -20,9 +23,11 @@ const Index: React.FC = () => {
     });
   }, [sounds]);
 
-  const filteredSounds = selectedCategory
-    ? sounds.filter((sound) => sound.category === selectedCategory)
-    : sounds;
+  const filteredSounds = sounds.filter((sound) => {
+    const categoryOk = selectedCategory ? sound.category === selectedCategory : true;
+    const myOk = myOnly && user ? sound.userId === user.uid : !myOnly;
+    return categoryOk && myOk;
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-mindful">
@@ -38,7 +43,7 @@ const Index: React.FC = () => {
         </div>
         
         <div className="mb-8">
-          <SoundFilters onCategoryChange={setSelectedCategory} />
+          <SoundFilters onCategoryChange={setSelectedCategory} onMySoundsChange={setMyOnly} />
         </div>
 
         {loading && <p className="text-center">Chargement...</p>}

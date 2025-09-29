@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SoundFiltersProps {
   onCategoryChange: (category: SoundCategory | null) => void;
+  onMySoundsChange?: (enabled: boolean) => void;
 }
 
 const categories: { value: SoundCategory; label: string }[] = [
@@ -20,13 +21,19 @@ const categories: { value: SoundCategory; label: string }[] = [
   { value: 'autres', label: 'Autres' }
 ];
 
-export function SoundFilters({ onCategoryChange }: SoundFiltersProps) {
+export function SoundFilters({ onCategoryChange, onMySoundsChange }: SoundFiltersProps) {
   const [selectedCategory, setSelectedCategory] = useState<SoundCategory | null>('tous');
+  const [myOnly, setMyOnly] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleCategoryClick = (category: SoundCategory) => {
+    // sélectionner une catégorie désactive "Mes sons"
+    if (myOnly) {
+      setMyOnly(false);
+      onMySoundsChange && onMySoundsChange(false);
+    }
     if (category === 'tous') {
       setSelectedCategory('tous');
       onCategoryChange(null);
@@ -37,6 +44,17 @@ export function SoundFilters({ onCategoryChange }: SoundFiltersProps) {
       setSelectedCategory(category);
       onCategoryChange(category);
     }
+  };
+
+  const handleMySoundsClick = () => {
+    const next = !myOnly;
+    setMyOnly(next);
+    // Quand on active "Mes sons", on annule la catégorie sélectionnée
+    if (next) {
+      setSelectedCategory('tous');
+      onCategoryChange(null);
+    }
+    onMySoundsChange && onMySoundsChange(next);
   };
 
   const checkScrollability = () => {
@@ -103,14 +121,26 @@ export function SoundFilters({ onCategoryChange }: SoundFiltersProps) {
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {categories.map((category) => (
-          <Button
-            key={category.value}
-            variant={selectedCategory === category.value ? "default" : "outline"}
-            onClick={() => handleCategoryClick(category.value)}
-            className="rounded-full text-white whitespace-nowrap flex-shrink-0"
-          >
-            {category.label}
-          </Button>
+          <>
+            <Button
+              key={category.value}
+              variant={!myOnly && selectedCategory === category.value ? "default" : "outline"}
+              onClick={() => handleCategoryClick(category.value)}
+              className="rounded-full text-white whitespace-nowrap flex-shrink-0"
+            >
+              {category.label}
+            </Button>
+            {category.value === 'tous' && (
+              <Button
+                key="mes-sons"
+                variant={myOnly ? "default" : "outline"}
+                onClick={handleMySoundsClick}
+                className="rounded-full text-white whitespace-nowrap flex-shrink-0"
+              >
+                Mes sons
+              </Button>
+            )}
+          </>
         ))}
       </div>
     </div>
