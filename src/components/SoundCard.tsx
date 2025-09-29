@@ -90,7 +90,7 @@ const SoundCard: React.FC<SoundCardProps> = ({
             loading="lazy"
           />
           
-          <div className="absolute inset-0 bg-gradient-to-t from-mindful-900/90 via-mindful-900/30 to-transparent flex flex-col justify-between p-4">
+          <div className="absolute inset-0 bg-gradient-to-t from-mindful-900/90 via-mindful-900/30 to-transparent flex flex-col p-4">
             <div className="flex justify-between items-start">
               <button
                 onClick={onToggle}
@@ -136,7 +136,7 @@ const SoundCard: React.FC<SoundCardProps> = ({
               </div>
             </div>
             
-            <div>
+            <div className="absolute inset-x-0 bottom-0 p-4">
               <h3 className="text-white font-medium text-lg mb-1">{sound.name}</h3>
               
               <div className={cn(

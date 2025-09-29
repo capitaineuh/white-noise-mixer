@@ -3,7 +3,9 @@ let sharedAudioContext: (AudioContext | null) = null;
 export function getSharedAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (sharedAudioContext) return sharedAudioContext;
-  const AC: typeof AudioContext | undefined = (window as any).AudioContext || (window as any).webkitAudioContext;
+  const AC: typeof AudioContext | undefined =
+    (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) return null;
   try {
     sharedAudioContext = new AC();

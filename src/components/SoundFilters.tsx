@@ -32,7 +32,7 @@ export function SoundFilters({ onCategoryChange, onMySoundsChange }: SoundFilter
     // sélectionner une catégorie désactive "Mes sons"
     if (myOnly) {
       setMyOnly(false);
-      onMySoundsChange && onMySoundsChange(false);
+      if (onMySoundsChange) onMySoundsChange(false);
     }
     if (category === 'tous') {
       setSelectedCategory('tous');
@@ -54,7 +54,7 @@ export function SoundFilters({ onCategoryChange, onMySoundsChange }: SoundFilter
       setSelectedCategory('tous');
       onCategoryChange(null);
     }
-    onMySoundsChange && onMySoundsChange(next);
+    if (onMySoundsChange) onMySoundsChange(next);
   };
 
   const checkScrollability = () => {

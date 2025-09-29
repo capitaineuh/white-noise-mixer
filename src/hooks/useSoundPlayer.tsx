@@ -68,10 +68,14 @@ const useSoundPlayer = (sound: Sound) => {
           if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
           if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
           if (gainNodeRef.current) {
-            try { gainNodeRef.current.disconnect(); } catch {}
+            try { gainNodeRef.current.disconnect(); } catch (e) {
+              // ignore disconnect errors
+            }
           }
           if (sourceNodeRef.current) {
-            try { sourceNodeRef.current.disconnect(); } catch {}
+            try { sourceNodeRef.current.disconnect(); } catch (e) {
+              // ignore disconnect errors
+            }
           }
         } finally {
           audioRef.current.pause();
@@ -108,7 +112,9 @@ const useSoundPlayer = (sound: Sound) => {
       const ctx = getSharedAudioContext();
       const gain = gainNodeRef.current;
       if (ctx && gain) {
-        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch {}
+        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch (e) {
+          // ignore cancellation errors
+        }
         gain.gain.value = 0;
       }
 
@@ -126,7 +132,9 @@ const useSoundPlayer = (sound: Sound) => {
           const g = gainNodeRef.current;
           const context = getSharedAudioContext();
           if (g && context) {
-            try { g.gain.cancelScheduledValues(context.currentTime); } catch {}
+            try { g.gain.cancelScheduledValues(context.currentTime); } catch (e) {
+              // ignore cancellation errors
+            }
             g.gain.setValueAtTime(0, context.currentTime);
             g.gain.linearRampToValueAtTime(sound.volume, context.currentTime + 0.2);
           } else {
@@ -179,7 +187,9 @@ const useSoundPlayer = (sound: Sound) => {
             const g = gainNodeRef.current;
             const context = getSharedAudioContext();
             if (g && context) {
-              try { g.gain.cancelScheduledValues(context.currentTime); } catch {}
+              try { g.gain.cancelScheduledValues(context.currentTime); } catch (e) {
+                // ignore cancellation errors
+              }
               g.gain.setValueAtTime(0, context.currentTime);
               g.gain.linearRampToValueAtTime(sound.volume, context.currentTime + 0.2);
             } else {
@@ -211,7 +221,9 @@ const useSoundPlayer = (sound: Sound) => {
       const ctx = getSharedAudioContext();
       const gain = gainNodeRef.current;
       if (ctx && gain) {
-        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch {}
+        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch (e) {
+          // ignore cancellation errors
+        }
         gain.gain.setValueAtTime(0, ctx.currentTime);
       }
 
@@ -237,7 +249,9 @@ const useSoundPlayer = (sound: Sound) => {
       const ctx = getSharedAudioContext();
       const gain = gainNodeRef.current;
       if (ctx && gain) {
-        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch {}
+        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch (e) {
+          // ignore cancellation errors
+        }
         gain.gain.linearRampToValueAtTime(sound.volume, ctx.currentTime + 0.1);
         return;
       }
@@ -263,7 +277,9 @@ const useSoundPlayer = (sound: Sound) => {
       const ctx = getSharedAudioContext();
       const gain = gainNodeRef.current;
       if (ctx && gain) {
-        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch {}
+        try { gain.gain.cancelScheduledValues(ctx.currentTime); } catch (e) {
+          // ignore cancellation errors
+        }
         gain.gain.setValueAtTime(sound.volume, ctx.currentTime);
       } else {
         audioRef.current.volume = sound.volume;

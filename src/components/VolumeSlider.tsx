@@ -78,7 +78,7 @@ const VolumeSlider: React.FC<VolumeSliderProps> = ({
 
   return (
     <div className={cn(
-      "group flex items-center gap-3 w-full px-1 touch-none select-none volume-slider-container", 
+      "group flex items-center gap-3 w-full px-1 select-none volume-slider-container", 
       className
     )}>
       <TooltipProvider>
@@ -105,6 +105,7 @@ const VolumeSlider: React.FC<VolumeSliderProps> = ({
           max={1}
           step={0.01}
           onValueChange={([newValue]) => handleSliderChange(newValue)}
+          onValueCommit={([newValue]) => handleSliderChange(newValue)}
           aria-label="Volume"
         >
           <Slider.Track className="bg-mindful-700/50 relative grow rounded-full h-[3px] group-hover:h-[5px] transition-all">

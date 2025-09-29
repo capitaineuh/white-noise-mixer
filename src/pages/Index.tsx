@@ -49,7 +49,7 @@ const Index: React.FC = () => {
         {loading && <p className="text-center">Chargement...</p>}
         {error && <p className="text-center text-red-500">{error}</p>}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
           {filteredSounds.map(sound => (
             <SoundCard
               key={sound.id}
