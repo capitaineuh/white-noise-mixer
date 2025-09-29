@@ -5,6 +5,11 @@ import { Sound } from '@/types/sound';
 const useSoundPlayer = (sound: Sound) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isInitializedRef = useRef(false);
+  // Anti-course condition pour ignorer des résolutions play() tardives (iOS/Safari)
+  const playRequestIdRef = useRef(0);
+  // Pointeurs d'intervalles pour nettoyage fiable
+  const fadeInIntervalRef = useRef<number | null>(null);
+  const fadeOutIntervalRef = useRef<number | null>(null);
 
   // Créer un élément audio si nécessaire (une seule fois)
   useEffect(() => {
@@ -44,89 +49,118 @@ const useSoundPlayer = (sound: Sound) => {
     };
   }, [sound.soundUrl, sound.name]);
 
-  // Gérer la lecture/pause avec fade in/out
+  // Gérer la lecture/pause avec fade in/out (ne dépend que de isPlaying)
   useEffect(() => {
     if (!audioRef.current) return;
-    
+
     const audio = audioRef.current;
-    
+
+    // Toujours nettoyer les intervalles existants avant toute action
+    if (fadeInIntervalRef.current) {
+      clearInterval(fadeInIntervalRef.current);
+      fadeInIntervalRef.current = null;
+    }
+    if (fadeOutIntervalRef.current) {
+      clearInterval(fadeOutIntervalRef.current);
+      fadeOutIntervalRef.current = null;
+    }
+
     if (sound.isPlaying) {
-      // Fade in progressif
-      const fadeIn = () => {
-        audio.volume = 0;
-        const playPromise = audio.play();
-        
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            // Fade in progressif sur 200ms
-            const fadeInInterval = setInterval(() => {
-              if (audio.volume < sound.volume) {
-                audio.volume = Math.min(audio.volume + 0.05, sound.volume);
-              } else {
-                clearInterval(fadeInInterval);
+      // Relancer proprement: démuter et préparer volume
+      audio.muted = false;
+      audio.volume = 0;
+
+      const currentPlayId = ++playRequestIdRef.current;
+      const startPlayback = async () => {
+        try {
+          const playPromise = audio.play();
+          if (playPromise) await playPromise;
+          // Ignorer si un autre play a été demandé ou si on n'est plus en lecture
+          if (currentPlayId !== playRequestIdRef.current || !sound.isPlaying) return;
+
+          // Fade in progressif
+          fadeInIntervalRef.current = window.setInterval(() => {
+            if (!audioRef.current) return;
+            const target = sound.volume;
+            if (audio.volume < target) {
+              audio.volume = Math.min(audio.volume + 0.05, target);
+            } else if (fadeInIntervalRef.current) {
+              clearInterval(fadeInIntervalRef.current);
+              fadeInIntervalRef.current = null;
+            }
+          }, 20);
+        } catch (error) {
+          // Fallback blob pour cas iOS/safari m4a typés video/mp4
+          try {
+            const response = await fetch(sound.soundUrl || '', { mode: 'cors' });
+            const blob = await response.blob();
+            const nameLower = (sound.name || '').toLowerCase();
+            let forcedType = blob.type;
+            if (!forcedType || forcedType === 'video/mp4') {
+              if (nameLower.endsWith('.m4a') || nameLower.endsWith('.m4b')) forcedType = 'audio/mp4';
+              else if (nameLower.endsWith('.mp3') || nameLower.endsWith('.mpeg')) forcedType = 'audio/mpeg';
+              else if (nameLower.endsWith('.wav')) forcedType = 'audio/wav';
+              else if (nameLower.endsWith('.aac')) forcedType = 'audio/aac';
+              else if (nameLower.endsWith('.flac')) forcedType = 'audio/flac';
+              else if (nameLower.endsWith('.aiff') || nameLower.endsWith('.aif')) forcedType = 'audio/aiff';
+            }
+
+            const audioBlob = forcedType ? new Blob([blob], { type: forcedType }) : blob;
+            const objectUrl = URL.createObjectURL(audioBlob);
+            const previousSrc = audio.src;
+            audio.src = objectUrl;
+
+            const play2 = audio.play();
+            if (play2) await play2;
+            if (currentPlayId !== playRequestIdRef.current || !sound.isPlaying) {
+              // Si une pause est survenue entre temps, ne pas lancer le fade et nettoyer
+              URL.revokeObjectURL(objectUrl);
+              if (previousSrc && previousSrc.startsWith('blob:')) URL.revokeObjectURL(previousSrc);
+              return;
+            }
+
+            if (previousSrc && previousSrc.startsWith('blob:')) {
+              URL.revokeObjectURL(previousSrc);
+            }
+
+            fadeInIntervalRef.current = window.setInterval(() => {
+              if (!audioRef.current) return;
+              const target = sound.volume;
+              if (audio.volume < target) {
+                audio.volume = Math.min(audio.volume + 0.05, target);
+              } else if (fadeInIntervalRef.current) {
+                clearInterval(fadeInIntervalRef.current);
+                fadeInIntervalRef.current = null;
               }
             }, 20);
-          }).catch(async (error) => {
-            console.warn('Lecture audio directe échouée, tentative de fallback blob:', error);
-            try {
-              // Télécharger et forcer un blob audio pour corriger les types m4a marqués video/mp4
-              const response = await fetch(sound.soundUrl, { mode: 'cors' });
-              const blob = await response.blob();
-              const nameLower = (sound.name || '').toLowerCase();
-              let forcedType = blob.type;
-              if (!forcedType || forcedType === 'video/mp4') {
-                if (nameLower.endsWith('.m4a') || nameLower.endsWith('.m4b')) forcedType = 'audio/mp4';
-                else if (nameLower.endsWith('.mp3') || nameLower.endsWith('.mpeg')) forcedType = 'audio/mpeg';
-                else if (nameLower.endsWith('.wav')) forcedType = 'audio/wav';
-                else if (nameLower.endsWith('.aac')) forcedType = 'audio/aac';
-                else if (nameLower.endsWith('.flac')) forcedType = 'audio/flac';
-                else if (nameLower.endsWith('.aiff') || nameLower.endsWith('.aif')) forcedType = 'audio/aiff';
-              }
-
-              const audioBlob = forcedType ? new Blob([blob], { type: forcedType }) : blob;
-              const objectUrl = URL.createObjectURL(audioBlob);
-              const previousSrc = audio.src;
-              audio.src = objectUrl;
-              const play2 = audio.play();
-              if (play2) await play2;
-
-              // Nettoyage de l'ancien Object URL si existant
-              if (previousSrc && previousSrc.startsWith('blob:')) {
-                URL.revokeObjectURL(previousSrc);
-              }
-
-              // Fade in après fallback
-              const fadeInInterval = setInterval(() => {
-                if (audio.volume < sound.volume) {
-                  audio.volume = Math.min(audio.volume + 0.05, sound.volume);
-                } else {
-                  clearInterval(fadeInInterval);
-                }
-              }, 20);
-            } catch (e) {
-              console.error('Échec du fallback blob pour lecture audio:', e);
-            }
-          });
+          } catch (e) {
+            console.error('Échec du fallback blob pour lecture audio:', e);
+          }
         }
       };
-      
-      fadeIn();
+
+      startPlayback();
     } else {
-      // Fade out progressif avant pause
-      const fadeOut = () => {
-        const fadeOutInterval = setInterval(() => {
+      // Pause immédiate fiable (iOS): couper le son, annuler fade-in, puis pause
+      audio.muted = true;
+      audio.pause();
+      // Laisser volume à 0 pour éviter brièveté sonore lors d'une reprise
+      audio.volume = 0;
+
+      // Lancer un petit fade-out si volume > 0 par sécurité (ne devrait pas arriver)
+      if (audio.volume > 0) {
+        fadeOutIntervalRef.current = window.setInterval(() => {
+          if (!audioRef.current) return;
           if (audio.volume > 0.01) {
             audio.volume = Math.max(audio.volume - 0.05, 0);
-          } else {
-            audio.pause();
-            clearInterval(fadeOutInterval);
+          } else if (fadeOutIntervalRef.current) {
+            clearInterval(fadeOutIntervalRef.current);
+            fadeOutIntervalRef.current = null;
           }
         }, 20);
-      };
-      
-      fadeOut();
+      }
     }
-  }, [sound.isPlaying, sound.volume, sound.soundUrl, sound.name]);
+  }, [sound.isPlaying, sound.name, sound.soundUrl, sound.volume]);
 
   // Mettre à jour le volume sans recréer l'audio
   useEffect(() => {
