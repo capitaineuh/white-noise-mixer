@@ -42,6 +42,11 @@ const AddCustomSoundButton: React.FC = () => {
   const [uploadLabel, setUploadLabel] = useState<string>('');
   const { user } = useAuth();
   const { refreshSounds } = useSoundContext();
+  
+  // iOS: limiter la feuille d'actions aux fournisseurs de fichiers uniquement
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const iosAudioAccept = '.m4a,.mp3,.wav,.aac,.flac,.aiff,.aif,.caf,.m4b,.mpeg';
+  const defaultAudioAccept = '.m4a,.mp3,.wav,.aac,.flac,.aiff,.aif,.caf,.m4b,.mpeg,audio/m4a,audio/mp4,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/x-caf,audio/x-aiff,audio/flac';
 
   useEffect(() => {
     console.log('État de l\'authentification:', {
@@ -93,7 +98,7 @@ const AddCustomSoundButton: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !soundFile || !imageFile) return;
+    if (!user || !soundFile) return;
 
     setLoading(true);
     setUploadProgress(0);
@@ -125,18 +130,21 @@ const AddCustomSoundButton: React.FC = () => {
       });
       const soundUrl = await getDownloadURL(soundRef);
 
-      // Upload image file
-      const imageRef = ref(storage, `images/${user.uid}/${Date.now()}_${imageFile.name}`);
-      setUploadLabel('Envoi de l’image…');
-      await new Promise<void>((resolve, reject) => {
-        const task = uploadBytesResumable(imageRef, imageFile);
-        task.on('state_changed', (snapshot) => {
-          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          // Les 40% restants pour l'image
-          setUploadProgress(60 + pct * 0.4);
-        }, (err) => reject(err), () => resolve());
-      });
-      const imageUrl = await getDownloadURL(imageRef);
+      // Upload image file (optionnel) ou image par défaut du site
+      let imageUrl: string = '/images/forest.png';
+      if (imageFile) {
+        const imageRef = ref(storage, `images/${user.uid}/${Date.now()}_${imageFile.name}`);
+        setUploadLabel('Envoi de l’image…');
+        await new Promise<void>((resolve, reject) => {
+          const task = uploadBytesResumable(imageRef, imageFile);
+          task.on('state_changed', (snapshot) => {
+            const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+            // Les 40% restants pour l'image
+            setUploadProgress(60 + pct * 0.4);
+          }, (err) => reject(err), () => resolve());
+        });
+        imageUrl = await getDownloadURL(imageRef);
+      }
 
       // Add to Firestore
       setUploadLabel('Finalisation…');
@@ -296,7 +304,7 @@ const AddCustomSoundButton: React.FC = () => {
                 <Input
                   id="sound"
                   type="file"
-                  accept=".m4a,.mp3,.wav,.aac,.flac,.aiff,.aif,.caf,.m4b,.mpeg,audio/m4a,audio/mp4,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/x-caf,audio/x-aiff,audio/flac"
+                accept={isIOS ? iosAudioAccept : defaultAudioAccept}
                   onChange={handleSoundFileChange}
                   className="bg-mindful-800 border-mindful-700 text-white h-10 w-full text-sm
                     file:mr-2 file:py-1.5
@@ -362,7 +370,7 @@ const AddCustomSoundButton: React.FC = () => {
           <DialogFooter className="pt-2">
             <Button
               type="submit"
-              disabled={loading || !name || !soundFile || !imageFile}
+              disabled={loading || !name || !soundFile}
               className="bg-primary hover:bg-primary/90 text-white disabled:bg-mindful-700 w-full sm:w-auto"
             >
               {loading ? 'Ajout en cours...' : 'Ajouter le son'}

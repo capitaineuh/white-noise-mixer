@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { SoundCategory } from "@/types/sound";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SoundFiltersProps {
@@ -121,9 +121,8 @@ export function SoundFilters({ onCategoryChange, onMySoundsChange }: SoundFilter
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {categories.map((category) => (
-          <>
+          <Fragment key={category.value}>
             <Button
-              key={category.value}
               variant={!myOnly && selectedCategory === category.value ? "default" : "outline"}
               onClick={() => handleCategoryClick(category.value)}
               className="rounded-full text-white whitespace-nowrap flex-shrink-0"
@@ -132,7 +131,6 @@ export function SoundFilters({ onCategoryChange, onMySoundsChange }: SoundFilter
             </Button>
             {category.value === 'tous' && (
               <Button
-                key="mes-sons"
                 variant={myOnly ? "default" : "outline"}
                 onClick={handleMySoundsClick}
                 className="rounded-full text-white whitespace-nowrap flex-shrink-0"
@@ -140,7 +138,7 @@ export function SoundFilters({ onCategoryChange, onMySoundsChange }: SoundFilter
                 Mes sons
               </Button>
             )}
-          </>
+          </Fragment>
         ))}
       </div>
     </div>

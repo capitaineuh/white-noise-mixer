@@ -14,6 +14,8 @@ const useSoundPlayer = (sound: Sound) => {
   // WebAudio: source et gain par son
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  // Crossfade pour éviter les coupures nettes en boucle
+  const crossfadeRef = useRef<number | null>(null);
 
   // Créer un élément audio si nécessaire (une seule fois)
   useEffect(() => {
@@ -67,6 +69,7 @@ const useSoundPlayer = (sound: Sound) => {
         try {
           if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
           if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
+          if (crossfadeRef.current) clearInterval(crossfadeRef.current);
           if (gainNodeRef.current) {
             try { gainNodeRef.current.disconnect(); } catch (e) {
               // ignore disconnect errors
@@ -102,6 +105,10 @@ const useSoundPlayer = (sound: Sound) => {
     if (fadeOutIntervalRef.current) {
       clearInterval(fadeOutIntervalRef.current);
       fadeOutIntervalRef.current = null;
+    }
+    if (crossfadeRef.current) {
+      clearInterval(crossfadeRef.current);
+      crossfadeRef.current = null;
     }
 
     if (sound.isPlaying) {
@@ -215,7 +222,7 @@ const useSoundPlayer = (sound: Sound) => {
       // Pause immédiate fiable (iOS): couper le son, annuler fade-in, puis pause
       audio.muted = true;
       audio.pause();
-      // Laisser volume à 0 pour éviter brièveté sonore lors d'une reprise
+      // Laisser volume à 1 pour éviter brièveté sonore lors d'une reprise
       audio.volume = 1;
       // Mettre le gain à 0 également
       const ctx = getSharedAudioContext();
@@ -227,17 +234,18 @@ const useSoundPlayer = (sound: Sound) => {
         gain.gain.setValueAtTime(0, ctx.currentTime);
       }
 
-      // Lancer un petit fade-out si volume > 0 par sécurité (ne devrait pas arriver)
-      if (audio.volume > 0) {
-        fadeOutIntervalRef.current = window.setInterval(() => {
-          if (!audioRef.current) return;
-          if (audio.volume > 0.01) {
-            audio.volume = Math.max(audio.volume - 0.05, 0);
-          } else if (fadeOutIntervalRef.current) {
-            clearInterval(fadeOutIntervalRef.current);
-            fadeOutIntervalRef.current = null;
-          }
-        }, 20);
+      // Nettoyer immédiatement tous les intervalles pour éviter les boucles
+      if (fadeInIntervalRef.current) {
+        clearInterval(fadeInIntervalRef.current);
+        fadeInIntervalRef.current = null;
+      }
+      if (fadeOutIntervalRef.current) {
+        clearInterval(fadeOutIntervalRef.current);
+        fadeOutIntervalRef.current = null;
+      }
+      if (crossfadeRef.current) {
+        clearInterval(crossfadeRef.current);
+        crossfadeRef.current = null;
       }
     }
   }, [sound.isPlaying, sound.name, sound.soundUrl, sound.volume]);
@@ -286,6 +294,78 @@ const useSoundPlayer = (sound: Sound) => {
       }
     }
   }, [sound.volume, sound.isPlaying]);
+
+  // Gérer le crossfade pour éviter les coupures nettes en boucle
+  useEffect(() => {
+    if (!audioRef.current || !sound.isPlaying) return;
+
+    const audio = audioRef.current;
+    const ctx = getSharedAudioContext();
+    const gain = gainNodeRef.current;
+
+    const handleTimeUpdate = () => {
+      if (!audio || !audio.loop) return;
+
+      const duration = audio.duration;
+      const currentTime = audio.currentTime;
+      
+      // Détecter quand on approche de la fin (dernières 2 secondes)
+      const crossfadeStartTime = duration - 2;
+      const crossfadeDuration = 1.5; // 1.5 secondes de crossfade
+      
+      if (currentTime >= crossfadeStartTime && currentTime < duration) {
+        // Calculer le progress du crossfade (0 à 1)
+        const crossfadeProgress = (currentTime - crossfadeStartTime) / crossfadeDuration;
+        
+        if (gain && ctx) {
+          // Réduire légèrement le volume vers la fin
+          const targetVolume = sound.volume * (1 - crossfadeProgress * 0.3); // Réduction de 30% max
+          try { 
+            gain.gain.cancelScheduledValues(ctx.currentTime); 
+          } catch (e) {
+            // ignore cancellation errors
+          }
+          gain.gain.setValueAtTime(targetVolume, ctx.currentTime);
+        }
+      } else if (currentTime < 0.5 && crossfadeRef.current === null) {
+        // Au début de la boucle, faire un fade-in rapide
+        if (gain && ctx) {
+          try { 
+            gain.gain.cancelScheduledValues(ctx.currentTime); 
+          } catch (e) {
+            // ignore cancellation errors
+          }
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(sound.volume, ctx.currentTime + 0.3);
+        }
+      }
+    };
+
+    const handleSeeked = () => {
+      // Quand on revient au début (loop), faire un fade-in rapide
+      if (audio.currentTime < 0.5) {
+        if (gain && ctx) {
+          try { 
+            gain.gain.cancelScheduledValues(ctx.currentTime); 
+          } catch (e) {
+            // ignore cancellation errors
+          }
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(sound.volume, ctx.currentTime + 0.3);
+        }
+      }
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('seeked', handleSeeked);
+
+    return () => {
+      if (audio) {
+        audio.removeEventListener('timeupdate', handleTimeUpdate);
+        audio.removeEventListener('seeked', handleSeeked);
+      }
+    };
+  }, [sound.isPlaying, sound.volume]);
 
   return audioRef;
 };

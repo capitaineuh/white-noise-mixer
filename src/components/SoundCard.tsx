@@ -5,6 +5,15 @@ import VolumeSlider from './VolumeSlider';
 import useSoundPlayer from '../hooks/useSoundPlayer';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,10 +25,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { db, storage } from '../lib/firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
+import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { ref, deleteObject, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { toast } from '../components/ui/use-toast';
 import { useSoundContext } from '../contexts/SoundContext';
+import { useAuth } from '@/hooks/useAuth';
+import { SoundCategory } from '@/types/sound';
 
 interface SoundCardProps {
   sound: Sound;
@@ -35,8 +46,15 @@ const SoundCard: React.FC<SoundCardProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState<string>(sound.name);
+  const [editDescription, setEditDescription] = useState<string>(sound.description || '');
+  const [editCategory, setEditCategory] = useState<SoundCategory>(sound.category);
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
   const audioRef = useSoundPlayer(sound);
   const { refreshSounds } = useSoundContext();
+  const { user } = useAuth();
   
   const handleDelete = async () => {
     try {
@@ -69,6 +87,53 @@ const SoundCard: React.FC<SoundCardProps> = ({
         description: "Une erreur est survenue lors de la suppression du son",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!user || user.uid !== sound.userId || !sound.id) {
+      return;
+    }
+    try {
+      setSaving(true);
+      const updates: Partial<Sound> = {
+        name: editName,
+        description: editDescription,
+        category: editCategory,
+      } as Partial<Sound>;
+
+      let newImageUrl: string | null = null;
+      if (newImageFile) {
+        const imageRef = ref(storage, `images/${user.uid}/${Date.now()}_${newImageFile.name}`);
+        await new Promise<void>((resolve, reject) => {
+          const task = uploadBytesResumable(imageRef, newImageFile);
+          task.on('state_changed', undefined, (err) => reject(err), () => resolve());
+        });
+        newImageUrl = await getDownloadURL(imageRef);
+        updates.imageUrl = newImageUrl as unknown as string;
+      }
+
+      await updateDoc(doc(db, 'sounds', sound.id), updates as any);
+
+      // Supprimer l'ancienne image si une nouvelle a été téléversée
+      if (newImageUrl && sound.imageUrl) {
+        try {
+          const oldRef = ref(storage, sound.imageUrl);
+          await deleteObject(oldRef);
+        } catch (e) {
+          // Ignorer si non supprimable (URL hors Storage)
+        }
+      }
+
+      await refreshSounds();
+      setIsEditing(false);
+      setNewImageFile(null);
+      toast({ title: 'Modifié', description: 'Le son a été mis à jour.' });
+    } catch (error) {
+      console.error('Error updating sound:', error);
+      toast({ title: 'Erreur', description: 'Impossible de mettre à jour le son.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -110,16 +175,15 @@ const SoundCard: React.FC<SoundCardProps> = ({
               </button>
 
               <div className="flex gap-2">
-                {sound.description && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowDescription(true)}
-                    className="text-mindful-400 hover:text-white hover:bg-white/10 backdrop-blur-sm"
-                  >
-                    <Info size={16} />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDescription(true)}
+                  className="text-mindful-400 hover:text-white hover:bg-white/10 backdrop-blur-sm"
+                  aria-label="Informations et modification"
+                >
+                  <Info size={16} />
+                </Button>
                 {sound.userId && (
                   <Button
                     variant="ghost"
@@ -167,29 +231,88 @@ const SoundCard: React.FC<SoundCardProps> = ({
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-xl font-semibold text-white mb-1">
-                      {sound.name}
+                      {isEditing ? 'Modifier le son' : sound.name}
                     </h3>
-                    <p className="text-sm text-mindful-400">
-                      {sound.category.charAt(0).toUpperCase() + sound.category.slice(1)}
+                    {!isEditing && (
+                      <p className="text-sm text-mindful-400">
+                        {sound.category.charAt(0).toUpperCase() + sound.category.slice(1)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {user?.uid === sound.userId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditing((v) => !v)}
+                        className="text-mindful-300 hover:text-white hover:bg-white/10"
+                      >
+                        {isEditing ? 'Annuler' : 'Modifier'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowDescription(false)}
+                      className="text-mindful-400 hover:text-white hover:bg-white/10"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+
+                {!isEditing && (
+                  <div className="bg-mindful-900/50 rounded-lg p-4">
+                    <p className="text-white/90 leading-relaxed">
+                      {sound.description}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowDescription(false)}
-                    className="text-mindful-400 hover:text-white hover:bg-white/10"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </Button>
-                </div>
-                <div className="bg-mindful-900/50 rounded-lg p-4">
-                  <p className="text-white/90 leading-relaxed">
-                    {sound.description}
-                  </p>
-                </div>
+                )}
+
+                {isEditing && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-name" className="text-white text-sm">Titre</Label>
+                      <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} className="bg-mindful-900 border-mindful-700 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-description" className="text-white text-sm">Description</Label>
+                      <Input id="edit-description" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="bg-mindful-900 border-mindful-700 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-category" className="text-white text-sm">Catégorie</Label>
+                      <Select value={editCategory} onValueChange={(v: SoundCategory) => setEditCategory(v)}>
+                        <SelectTrigger className="bg-mindful-900 border-mindful-700 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-mindful-800 border-mindful-700 text-white">
+                          <SelectItem value="nature">Nature</SelectItem>
+                          <SelectItem value="asmr">ASMR</SelectItem>
+                          <SelectItem value="animaux">Animaux</SelectItem>
+                          <SelectItem value="lofi">Lo-Fi</SelectItem>
+                          <SelectItem value="jazz">Jazz</SelectItem>
+                          <SelectItem value="cours">Cours</SelectItem>
+                          <SelectItem value="podcast">Podcast</SelectItem>
+                          <SelectItem value="frequences">Fréquences</SelectItem>
+                          <SelectItem value="autres">Autres</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-image" className="text-white text-sm">Image (optionnel)</Label>
+                      <Input id="edit-image" type="file" accept="image/png,image/jpeg" onChange={(e) => setNewImageFile(e.target.files?.[0] || null)} className="bg-mindful-900 border-mindful-700 text-white" />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => { setIsEditing(false); setNewImageFile(null); }} className="border-mindful-600 text-white">Annuler</Button>
+                      <Button onClick={handleSaveEdit} disabled={saving || !editName} className="bg-primary text-white hover:bg-primary/90">
+                        {saving ? 'Enregistrement…' : 'Enregistrer'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

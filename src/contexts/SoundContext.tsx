@@ -52,7 +52,22 @@ export const SoundProvider: React.FC<{children: ReactNode}> = ({ children }) => 
   const [scheduledMixId, setScheduledMixId] = useState<string | null>(null);
 
   useEffect(() => {
-    setLocalSounds(sounds.map(sound => ({ ...sound, isPlaying: false })));
+    // Préserver l'état de lecture des sons existants lors du rechargement
+    setLocalSounds(prevLocalSounds => {
+      // Si c'est la première fois qu'on charge des sons, initialiser avec isPlaying: false
+      if (prevLocalSounds.length === 0) {
+        return sounds.map(sound => ({ ...sound, isPlaying: false }));
+      }
+      
+      // Sinon, préserver l'état de lecture des sons existants
+      return sounds.map(newSound => {
+        const existingSound = prevLocalSounds.find(s => s.id === newSound.id);
+        if (existingSound) {
+          return { ...newSound, isPlaying: existingSound.isPlaying };
+        }
+        return { ...newSound, isPlaying: false };
+      });
+    });
   }, [sounds]);
 
   useEffect(() => {
