@@ -8,12 +8,17 @@ import { SoundFilters } from "@/components/SoundFilters";
 import { SoundCategory } from "@/types/sound";
 import AddCustomSoundButton from "@/components/AddCustomSoundButton";
 import { useAuth } from "@/hooks/useAuth";
+import { useBackgroundAudio } from "@/hooks/useBackgroundAudio";
+import BackgroundAudioInstructions from "@/components/BackgroundAudioInstructions";
 
 const Index: React.FC = () => {
   const { sounds, toggleSound, updateVolume, loading, error } = useSoundContext();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<SoundCategory | null>(null);
   const [myOnly, setMyOnly] = useState(false);
+  
+  // Activer la lecture audio en arrière-plan
+  useBackgroundAudio();
 
   useEffect(() => {
     // Précharger les images
@@ -60,6 +65,9 @@ const Index: React.FC = () => {
           ))}
         </div>
       </main>
+
+      {/* Instructions pour la lecture en arrière-plan */}
+      <BackgroundAudioInstructions onClose={() => {}} />
     </div>
   );
 };

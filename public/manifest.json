@@ -11,6 +11,7 @@
     "scope": "/",
     "lang": "fr",
     "categories": ["productivity", "lifestyle", "utilities"],
+    "prefer_related_applications": false,
     "icons": [
       {
         "src": "/ico/cha192.png",

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getSharedAudioContext, resumeSharedAudioContext } from '@/lib/audio';
+import { getSharedAudioContext, resumeSharedAudioContext, keepAudioContextAlive, isAudioContextReady } from '@/lib/audio';
 import { Sound } from '@/types/sound';
 
 // Custom hook pour gérer la lecture audio
@@ -130,6 +130,10 @@ const useSoundPlayer = (sound: Sound) => {
         try {
           // iOS: s'assurer que l'AudioContext est actif
           await resumeSharedAudioContext();
+          
+          // Maintenir l'AudioContext actif pour la lecture en arrière-plan
+          keepAudioContextAlive();
+          
           const playPromise = audio.play();
           if (playPromise) await playPromise;
           // Ignorer si un autre play a été demandé ou si on n'est plus en lecture
@@ -366,6 +370,23 @@ const useSoundPlayer = (sound: Sound) => {
       }
     };
   }, [sound.isPlaying, sound.volume]);
+
+  // Maintenir l'AudioContext actif en arrière-plan quand des sons jouent
+  useEffect(() => {
+    if (!sound.isPlaying) return;
+
+    // Vérifier périodiquement l'état de l'AudioContext
+    const interval = setInterval(() => {
+      if (sound.isPlaying && !isAudioContextReady()) {
+        console.log('AudioContext suspendu - tentative de reprise');
+        resumeSharedAudioContext().then(() => {
+          keepAudioContextAlive();
+        });
+      }
+    }, 5000); // Vérifier toutes les 5 secondes
+
+    return () => clearInterval(interval);
+  }, [sound.isPlaying]);
 
   return audioRef;
 };
